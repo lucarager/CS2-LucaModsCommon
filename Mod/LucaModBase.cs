@@ -70,7 +70,7 @@ namespace LucaModsCommon.Mod {
         /// <summary>
         /// Gets or sets a value indicating whether the mod is in test mode.
         /// </summary>
-        internal bool IsTestMode { get; set; } = false;
+        protected internal bool IsTestMode { get; set; } = false;
 
         #region Abstract Members
 
