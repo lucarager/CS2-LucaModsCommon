@@ -15,6 +15,13 @@ namespace LucaModsCommon.Utils {
         public string Prefix { get; set; }
 
         /// <summary>
+        /// Gets or sets the default <see cref="ILog"/> used when a <see cref="PrefixedLogger"/> is
+        /// created without an explicit logger. Set once during mod startup (see
+        /// <c>LucaModBase.OnLoad</c>) so systems can keep using <c>new PrefixedLogger(nameof(X))</c>.
+        /// </summary>
+        public static ILog DefaultLog { get; set; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PrefixedLogger"/> class.
         /// </summary>
         /// <param name="prefix">The prefix to prepend to log messages.</param>
@@ -22,6 +29,14 @@ namespace LucaModsCommon.Utils {
         public PrefixedLogger(string prefix, ILog log) {
             Prefix = prefix;
             m_Log  = log;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PrefixedLogger"/> class using
+        /// <see cref="DefaultLog"/> as the underlying logger.
+        /// </summary>
+        /// <param name="prefix">The prefix to prepend to log messages.</param>
+        public PrefixedLogger(string prefix) : this(prefix, DefaultLog) {
         }
 
         public void Info(string message) { Log("INFO", message); }

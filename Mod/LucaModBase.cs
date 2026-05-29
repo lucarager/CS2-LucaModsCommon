@@ -70,7 +70,7 @@ namespace LucaModsCommon.Mod {
         /// <summary>
         /// Gets or sets a value indicating whether the mod is in test mode.
         /// </summary>
-        internal bool IsTestMode { get; set; } = false;
+        protected internal bool IsTestMode { get; set; } = false;
 
         #region Abstract Members
 
@@ -127,10 +127,34 @@ namespace LucaModsCommon.Mod {
         protected virtual void OnBeforeDispose() { }
 
         /// <summary>
-        /// Override to generate a language file in debug/I18N builds. The base implementation is a no-op.
-        /// Derived mods should use <c>[CallerFilePath]</c> to determine the export directory.
+        /// Override to generate a language file in debug/I18N builds. Call
+        /// <see cref="ExportEnUsLocalization"/> to do the heavy lifting — the override just provides the
+        /// <c>[CallerFilePath]</c> anchor so the export lands next to the mod's source.
         /// </summary>
         protected virtual void GenerateLanguageFile() { }
+
+        /// <summary>
+        /// Serializes the en-US localization dictionary to a JSON file relative to the calling source
+        /// file. Intended to be called from a <see cref="GenerateLanguageFile"/> override like:
+        /// <code>protected override void GenerateLanguageFile() => ExportEnUsLocalization();</code>
+        /// </summary>
+        /// <param name="relativePath">Path relative to the caller's directory (default: L10N/lang/en-US.json).</param>
+        /// <param name="callerFilePath">Auto-populated by the compiler.</param>
+        protected void ExportEnUsLocalization(string relativePath = "L10N/lang/en-US.json", [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = null) {
+            m_Log.Debug("ExportEnUsLocalization()");
+            var localeDict = CreateEnUsLocalization(Settings)
+                .ReadEntries(new List<IDictionaryEntryError>(), new Dictionary<string, int>())
+                .ToDictionary(pair => pair.Key, pair => pair.Value);
+            var json = JsonConvert.SerializeObject(localeDict, Formatting.Indented);
+            try {
+                var directory  = Path.GetDirectoryName(callerFilePath);
+                var exportPath = Path.Combine(directory, relativePath);
+                File.WriteAllText(exportPath, json);
+                m_Log.Info($"Exported language file to {exportPath}");
+            } catch (Exception ex) {
+                m_Log.Error($"Failed to export language file: {ex}");
+            }
+        }
 
         #endregion
 
@@ -169,6 +193,7 @@ namespace LucaModsCommon.Mod {
             m_Log.Info($"Loading {ModName} version {GetType().Assembly.GetName().Version}");
 
             // Initialize shared utilities.
+            PrefixedLogger.DefaultLog = Log;
             ReflectionExtensions.Initialize(Log);
 
             // Initialize Settings.
@@ -214,7 +239,10 @@ namespace LucaModsCommon.Mod {
 
         /// <inheritdoc/>
         public void OnDispose() {
-            m_Log.Info("OnDispose()");
+            // Guard: OnLoad may have failed before the logger was initialized.
+            if (m_Log != null) {
+                m_Log.Info("OnDispose()");
+            }
 
             OnBeforeDispose();
 
@@ -249,7 +277,7 @@ namespace LucaModsCommon.Mod {
         /// Removes all Harmony patches applied by this mod.
         /// </summary>
         private void TeardownHarmonyPatches() {
-            m_Log.Debug("TeardownHarmonyPatches()");
+            m_Log?.Debug("TeardownHarmonyPatches()");
             m_Harmony?.UnpatchAll(HarmonyPatchId);
         }
 
@@ -264,6 +292,7 @@ namespace LucaModsCommon.Mod {
             }
 
             var assemblyPath = Path.GetDirectoryName(modAsset.GetMeta().path);
+            m_Log.Debug($"RegisterAssets() -- Registering assets from {assemblyPath}/Assets/ to {UiHostPrefix}");
             UIManager.defaultUISystem.AddHostLocation(UiHostPrefix, assemblyPath + "/Assets/");
         }
 

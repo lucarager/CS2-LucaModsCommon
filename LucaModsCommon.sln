@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.4.11620.152 stable
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LucaModsCommon", "LucaModsCommon.csproj", "{5A74D7E3-9BA6-7449-E7DD-02B14BEFF48F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		I18N|Any CPU = I18N|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5A74D7E3-9BA6-7449-E7DD-02B14BEFF48F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A74D7E3-9BA6-7449-E7DD-02B14BEFF48F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A74D7E3-9BA6-7449-E7DD-02B14BEFF48F}.I18N|Any CPU.ActiveCfg = I18N|Any CPU
+		{5A74D7E3-9BA6-7449-E7DD-02B14BEFF48F}.I18N|Any CPU.Build.0 = I18N|Any CPU
+		{5A74D7E3-9BA6-7449-E7DD-02B14BEFF48F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A74D7E3-9BA6-7449-E7DD-02B14BEFF48F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0B4CCE29-C382-4051-B814-C04F36098A79}
+	EndGlobalSection
+EndGlobal
