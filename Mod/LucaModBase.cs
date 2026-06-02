@@ -43,7 +43,13 @@ namespace LucaModsCommon.Mod {
     /// logging, settings, localization, Harmony patching, asset registration, and test registration.
     /// </summary>
     /// <typeparam name="TSelf">The derived mod type, enabling typed static Instance access.</typeparam>
-    public abstract class LucaModBase<TSelf> : IMod where TSelf : LucaModBase<TSelf> {
+    // NOTE: LucaModBase intentionally does NOT implement IMod. The game instantiates every
+    // IMod-derived type in the assembly (ModManager: GetTypesDerivedFrom<IMod>() ->
+    // FormatterServices.GetUninitializedObject), and because shared code is compiled into the mod's
+    // own assembly (source inclusion), an abstract IMod base here would be picked up and crash with
+    // "Type cannot be instantiated". The concrete mod class declares `: LucaModBase<TSelf>, IMod`
+    // and satisfies IMod via the inherited public OnLoad/OnDispose below.
+    public abstract class LucaModBase<TSelf> where TSelf : LucaModBase<TSelf>, IMod {
         private Harmony        m_Harmony;
         private PrefixedLogger m_Log;
 
@@ -197,7 +203,7 @@ namespace LucaModsCommon.Mod {
             ReflectionExtensions.Initialize(Log);
 
             // Initialize Settings.
-            Settings = CreateSettings(this);
+            Settings = CreateSettings(Instance);
 
             // Load i18n.
             GameManager.instance.localizationManager.AddSource("en-US", CreateEnUsLocalization(Settings));
@@ -212,7 +218,7 @@ namespace LucaModsCommon.Mod {
             Settings.RegisterInOptionsUI();
 
             // Load saved settings.
-            AssetDatabase.global.LoadSettings(ModName, Settings, CreateSettings(this));
+            AssetDatabase.global.LoadSettings(ModName, Settings, CreateSettings(Instance));
 
             // Apply input bindings.
             Settings.RegisterKeyBindings();
@@ -286,7 +292,7 @@ namespace LucaModsCommon.Mod {
         /// </summary>
         private void RegisterAssets() {
             m_Log.Debug("RegisterAssets()");
-            if (!GameManager.instance.modManager.TryGetExecutableAsset(this, out var modAsset)) {
+            if (!GameManager.instance.modManager.TryGetExecutableAsset(Instance, out var modAsset)) {
                 m_Log.Error("Failed to get executable asset path. Exiting.");
                 return;
             }

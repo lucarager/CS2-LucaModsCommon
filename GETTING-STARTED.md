@@ -140,12 +140,12 @@ settings create/register/load, en-US + embedded-resource localization, key bindi
 
 ```csharp
 namespace Stats {
-    using Colossal.Localization;   // IDictionarySource
-    using Game;                    // UpdateSystem
-    using Game.Modding;            // IMod, ModSetting
+    using Colossal;       // IDictionarySource  (NOTE: Colossal, not Colossal.Localization)
+    using Game;           // UpdateSystem
+    using Game.Modding;   // IMod, ModSetting
     using LucaModsCommon.Mod;
 
-    public sealed class Mod : LucaModBase<Mod> {
+    public sealed class Mod : LucaModBase<Mod>, IMod {   // <-- your class declares IMod, not the base
         public override  string ModName      => "Stats";
         public override  string Id           => "Stats";  // binding group + must match UI/mod.json "id"
         protected override string UiHostPrefix => "stats"; // AddHostLocation prefix for coui:// asset URLs
@@ -165,6 +165,13 @@ namespace Stats {
     }
 }
 ```
+
+> **Declare `, IMod` on your class — this is required.** `LucaModBase` deliberately does **not**
+> implement `IMod`. The game instantiates *every* `IMod`-derived type in the assembly
+> (`GetTypesDerivedFrom<IMod>()` → `GetUninitializedObject`), and since shared code is compiled into your
+> assembly, an abstract `IMod` base would get picked up and crash on load with *"Type cannot be
+> instantiated"*. Your concrete class declares `IMod` and inherits `OnLoad`/`OnDispose` from the base to
+> satisfy it.
 
 Two follow-ups in the template's `Setting.cs`:
 
@@ -207,17 +214,29 @@ Add `paths` entries for the shared folders (keep `baseUrl: "src"` and `resolveJs
   "compilerOptions": {
     "baseUrl": "src",
     "resolveJsonModule": true,
+    "typeRoots": ["./types", "node_modules/@types"],   // bare template omits @types; add it
     "paths": {
       "mod.json":  ["../mod.json"],
       "utils/*":   ["utils/*",   "../../Common/ui/utils/*"],
-      "vanilla/*": ["vanilla/*", "../../Common/ui/vanilla/*"]
+      "vanilla/*": ["vanilla/*", "../../Common/ui/vanilla/*"],
+      // shared TS lives OUTSIDE UI/, so node can't find UI/node_modules from it — map react explicitly:
+      "react":     ["../node_modules/@types/react"],
+      "react/*":   ["../node_modules/@types/react/*"]
     }
-    // ...keep the rest (jsx, strict, target, typeRoots, etc.)
+    // ...keep the rest (jsx, strict, target, etc.)
   }
 }
 ```
 
-`paths` resolve relative to `baseUrl` (`Stats/UI/src`), so `../../Common/ui` → `Stats/Common/ui`.
+`paths` resolve relative to `baseUrl` (`Stats/UI/src`), so `../../Common/ui` → `Stats/Common/ui` and
+`../node_modules` → `Stats/UI/node_modules`.
+
+> **Why the `react` mapping?** `vanilla/types.ts` imports from `react`. Because it lives in
+> `Stats/Common/ui` (outside `Stats/UI/`), TypeScript's node resolution can't walk up to
+> `Stats/UI/node_modules` to find `@types/react`, so it errors `TS2307: Cannot find module 'react'`.
+> The `cs2/*` SDK modules don't hit this because they're ambient `declare module` types. Mapping
+> `react` (and `react/*` for `jsx-runtime`) to the UI's `node_modules` fixes it. webpack already
+> externalizes `react`, so this is purely for the type-checker.
 
 ### `Stats/UI/webpack.config.js`
 
@@ -285,6 +304,32 @@ declare module "vanilla/types" {
 }
 ```
 
+### C# ↔ UI two-way bindings
+
+`TwoWayBinding<T>("KEY")` pairs with the shared `ExtendedUISystemBase.CreateBinding("KEY", initial, cb)`
+— the naming lines up automatically (group = mod id, value binding = `BINDING:KEY`, setter trigger =
+`TRIGGER:KEY`):
+
+```csharp
+// C#: a UISystemBase-derived system, registered in RegisterSystems()
+public partial class StatsUISystem : ExtendedUISystemBase {
+    protected override string ModId => Mod.Instance.Id;
+    private ValueBindingHelper<int> m_Counter;
+    protected override void OnCreate() {
+        base.OnCreate();
+        m_Counter = CreateBinding("COUNTER", 0, v => { /* UI pushed a new value */ });
+    }
+}
+```
+```tsx
+// TS: read with useValue(.binding), write with .set(...)
+const counter = useValue(GAME_BINDINGS.COUNTER.binding);
+GAME_BINDINGS.COUNTER.set(counter + 1);
+```
+
+See `CS2-Stats` (`Systems/StatsUISystem.cs`, `UI/src/gameBindings.ts`, `UI/src/mods/statsPanel.tsx`)
+for the full worked example.
+
 > Not shared: `translations.ts` (its import targets each mod's own `en-US.json`) and `UI/types/*.d.ts`
 > (SDK-provided per mod). Keep your own copies.
 >
@@ -308,15 +353,20 @@ The shared `LucaModsCommon.targets` adds build steps the bare template doesn't h
 - **`BuildUI`** runs `npm run build` in `UI/` (run `npm install` in `Stats/UI/` once first).
 - **`CustomModPostProcessorConfig`** overrides the toolchain stub to build Windows-only (faster).
 
-For non-English localization, `LoadNonEnglishLocalizations` looks for embedded resources named
-`<AssemblyName>.L10n.lang.<locale>.json` or `<AssemblyName>.lang.<locale>.json`:
+**Localization.** en-US comes from your code `IDictionarySource` (the `CreateEnUsLocalization` override).
+For other locales, `LoadNonEnglishLocalizations` loads embedded resources named
+`<AssemblyName>.L10n.lang.<locale>.json` (or `<AssemblyName>.lang.<locale>.json`). Put your translation
+JSON under `L10n/lang/` and embed it:
 
 ```xml
 <ItemGroup>
-  <EmbeddedResource Include="L10n\lang\de-DE.json" />
-  <!-- ...one per supported locale... -->
+  <EmbeddedResource Include="L10n\lang\*.json" />
 </ItemGroup>
 ```
+
+Optionally override `GenerateLanguageFile()` to export `L10n/lang/en-US.json` from your en-US source for
+translators — it runs automatically on the **I18N** build configuration (which defines `EXPORT_EN_US`).
+Use `[CallerFilePath]` to locate your source dir. (See `CS2-Stats/Stats/Mod.cs` for a working example.)
 
 ---
 
