@@ -1,18 +1,43 @@
-// <copyright file="ExtendedUISystemBase.cs" company="Luca Rager">
+// <copyright file="CommonUISystemBase.cs" company="Luca Rager">
 // Copyright (c) Luca Rager. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 // </copyright>
 
-namespace LucaModsCommon.Extensions {
+namespace LucaModsCommon.Systems {
+    #region Using Statements
+
     using System;
+
     using Colossal.UI.Binding;
+
     using Game.UI;
 
-    public abstract partial class ExtendedUISystemBase : UISystemBase {
+    using LucaModsCommon.Extensions;
+    using LucaModsCommon.Utils;
+
+    #endregion
+
+    /// <summary>
+    /// Base <see cref="UISystemBase"/> for C# &lt;-&gt; UI bindings. Mirrors
+    /// <see cref="CommonGameSystemBase"/>: wires up a <see cref="PrefixedLogger"/> (<c>m_Log</c>) in
+    /// OnCreate, prefixed with the derived system's type name. Derived systems should call
+    /// <c>base.OnCreate()</c> when overriding. Also provides CreateBinding / CreateTrigger helpers.
+    /// </summary>
+    public abstract partial class CommonUISystemBase : UISystemBase {
+        protected internal PrefixedLogger m_Log;
+
         /// <summary>
-        /// The mod Id used for UI bindings. Subclasses must provide their mod's Id.
+        /// The mod Id used as the binding group. Subclasses provide their mod's Id
+        /// (e.g. <c>=&gt; MyMod.Instance.Id</c>).
         /// </summary>
         protected abstract string ModId { get; }
+
+        /// <inheritdoc/>
+        protected override void OnCreate() {
+            base.OnCreate();
+            m_Log = new PrefixedLogger(GetType().Name);
+            m_Log.Debug("OnCreate()");
+        }
 
         public ValueBindingHelper<T> CreateBinding<T>(string key, T initialValue) {
             var helper = new ValueBindingHelper<T>(new(ModId, $"BINDING:{key}", initialValue, new GenericUIWriter<T>()));

@@ -29,9 +29,9 @@ What you get from the submodule:
 | Area | Provides |
 |---|---|
 | `Mod/LucaModBase.cs` | `LucaModBase<TSelf>` — IMod base that wires logging, settings, localization, Harmony, tests, asset/UI host registration |
-| `Extensions/` | `ExtendedUISystemBase`, `ValueBindingHelper`, `ReflectionExtensions`, `EnumReader`, `GenericUIReader/Writer`, `ExtendedInfoSectionBase` |
+| `Extensions/` | `ValueBindingHelper`, `ReflectionExtensions`, `EnumReader`, `GenericUIReader/Writer`, `ExtendedInfoSectionBase` |
 | `Utils/PrefixedLogger.cs` | `[Prefix] message` logger |
-| `Systems/CommonGameSystemBase.cs` | `GameSystemBase` + a ready `m_Log` |
+| `Systems/` | `CommonGameSystemBase` (`GameSystemBase` + a ready `m_Log`); `CommonUISystemBase` (`UISystemBase` + the same `m_Log` + `CreateBinding`/`CreateTrigger` helpers) |
 | `Rendering/CustomOverlayRenderSystem.cs` | custom overlay renderer (optional) |
 | `ui/utils/` | `TwoWayBinding`, `TriggerBuilder`, `c()` classnames, `uiMapper` |
 | `ui/vanilla/` | vanilla component registry (`initialize`, `VC`/`VT`/`VF`) with a shared base set |
@@ -306,13 +306,14 @@ declare module "vanilla/types" {
 
 ### C# ↔ UI two-way bindings
 
-`TwoWayBinding<T>("KEY")` pairs with the shared `ExtendedUISystemBase.CreateBinding("KEY", initial, cb)`
+`TwoWayBinding<T>("KEY")` pairs with the shared `CommonUISystemBase.CreateBinding("KEY", initial, cb)`
 — the naming lines up automatically (group = mod id, value binding = `BINDING:KEY`, setter trigger =
 `TRIGGER:KEY`):
 
 ```csharp
-// C#: a UISystemBase-derived system, registered in RegisterSystems()
-public partial class StatsUISystem : ExtendedUISystemBase {
+// C#: a CommonUISystemBase-derived system (LucaModsCommon.Systems), registered in RegisterSystems().
+// base.OnCreate() wires the inherited m_Log, just like CommonGameSystemBase.
+public partial class StatsUISystem : CommonUISystemBase {
     protected override string ModId => Mod.Instance.Id;
     private ValueBindingHelper<int> m_Counter;
     protected override void OnCreate() {
