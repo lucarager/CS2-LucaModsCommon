@@ -144,9 +144,9 @@ namespace LucaModsCommon.Mod {
         /// file. Intended to be called from a <see cref="GenerateLanguageFile"/> override like:
         /// <code>protected override void GenerateLanguageFile() => ExportEnUsLocalization();</code>
         /// </summary>
-        /// <param name="relativePath">Path relative to the caller's directory (default: L10N/lang/en-US.json).</param>
+        /// <param name="relativePath">Path relative to the caller's directory (default: L10n/lang/en-US.json).</param>
         /// <param name="callerFilePath">Auto-populated by the compiler.</param>
-        protected void ExportEnUsLocalization(string relativePath = "L10N/lang/en-US.json", [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = null) {
+        protected void ExportEnUsLocalization(string relativePath = "L10n/lang/en-US.json", [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = null) {
             m_Log.Debug("ExportEnUsLocalization()");
             var localeDict = CreateEnUsLocalization(Settings)
                 .ReadEntries(new List<IDictionaryEntryError>(), new Dictionary<string, int>())
